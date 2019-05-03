@@ -7,7 +7,7 @@ router.route('/:user_id')
     knex.raw('SELECT * FROM users WHERE id = ?', [req.params.user_id])
     .then((result) => {
       if (result.rowCount <= 0){
-        throw { message : 'User not found' };
+        return res.status(404).json({ message : 'User not found' });
       }
       res.send(result);
     })
@@ -21,10 +21,10 @@ router.route('/login')
     knex.raw('SELECT * FROM users WHERE email = ?', [req.body.email])
     .then((result) => {
       if (result.rowCount <= 0){
-        throw { message : 'User not found'};
+        return res.status(404).json({ message : 'User not found' });
       }
       if (result.rows[0].password !== req.body.password){
-        throw { message : 'Incorrect password'}
+        return res.status(404).json({ message : 'Incorrect password' });
       }
       res.send(result.rows);
     })
@@ -34,26 +34,29 @@ router.route('/login')
   });
 
 router.route('/register')
-  // kept failing with using DEFAULT for id, until the fourth try.
   .post((req, res) => {
     knex.raw('SELECT * FROM users WHERE email = ?', [req.body.email])
-      .then((result) => {
-        if (result.rowCount > 0){
-          throw { message : 'User already exists'};
-        }
-      })
-    //   .then().knex.raw(`INSERT INTO users (id, email, password, created_at, updated_at)\
-    //     VALUES\
-    //     (DEFAULT, \'${req.body.email}\', \'${req.body.password}\', DEFAULT, DEFAULT)`)
-    //   })
-    
-    // .then((result) => {
-    //   res.send(result);
-    // })
-    // .catch((err) => {
-    //   res.send(err);
-    // })
+    .then((result) => {
+      if (result.rowCount > 0){
+        res.status(404).json({ message : 'User already exists'});
+      } else {
+        return knex.raw(
+          `INSERT INTO users (id, email, password, created_at, updated_at)\
+          VALUES\
+          (DEFAULT, \'${req.body.email}\', \'${req.body.password}\', DEFAULT, DEFAULT)`);
+      }
+    })
+    .then ((result) => {
+      res.send(result);
+    })
+    .catch(err => {
+      res.send(err);
+    });
   });
 
-
+router.route('/:user_id/forgot-password')
+  .put((req, res) => {
+    // knex.raw('UPDATE users SET password = ? WHERE id = ?', [req.body.password, req.params.user_id]);
+    // Continue Later...
+  })
 module.exports = router;
